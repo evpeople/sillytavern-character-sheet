@@ -1387,7 +1387,7 @@ jQuery(async function () {
         const container = $('<div>', { id: 'character_sheet_container', class: 'extension_container' });
         $('#summarize_container').after(container);
 
-        const settingsHtml = await renderExtensionTemplateAsync('third-party/character-sheet', 'settings', { defaultSettings });
+        const settingsHtml = await renderExtensionTemplateAsync('third-party/sillytavern-character-sheet', 'settings', { defaultSettings });
         container.append(settingsHtml);
         setupListeners();
         $('#characterSheetExtensionPopoutButton').off('click').on('click', function (e) {
