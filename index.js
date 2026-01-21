@@ -451,6 +451,8 @@ function getIndexOfLatestCharacterSheet(chat) {
  * @param {number|null} index Index of chat message to save to
  */
 function setCharacterSheetContext(value, saveToMessage, index = null) {
+    console.debug(`[CharacterSheet DEBUG] setCharacterSheetContext called: value length=${value?.length ?? 0}, saveToMessage=${saveToMessage}, index=${index}`);
+
     setExtensionPrompt(
         MODULE_NAME,
         formatCharacterSheetValue(value),
@@ -477,7 +479,10 @@ function setCharacterSheetContext(value, saveToMessage, index = null) {
         }
 
         mes.extra.characterSheet = value;
+        console.log(`[CharacterSheet] Character Sheet saved to message at index ${idx}. Content length: ${value?.length ?? 0}`);
         saveChatDebounced();
+    } else if (saveToMessage && !context.chat.length) {
+        console.debug('[CharacterSheet DEBUG] saveToMessage=true but no chat messages, sheet not persisted');
     }
 }
 
@@ -533,24 +538,33 @@ function getNewDialogueSince(chat, lastIndex) {
  */
 async function getUpdatePromptForNow(context, force) {
     if (extension_settings.character_sheet.promptInterval === 0 && !force) {
+        console.debug('[CharacterSheet DEBUG] Trigger check: promptInterval is 0 and not forced, skipping');
         return '';
     }
 
     // Wait for generation to finish
     try {
         if (selected_group) {
+            console.debug('[CharacterSheet DEBUG] Waiting for group generation to finish...');
             await waitUntilCondition(() => is_group_generating === false, 1000, 10);
         }
+        console.debug('[CharacterSheet DEBUG] Waiting for send press to be released...');
         await waitUntilCondition(() => is_send_press === false, 30000, 100);
     } catch {
+        console.debug('[CharacterSheet DEBUG] Wait condition failed, skipping update');
         return '';
     }
 
     if (!context.chat.length) {
+        console.debug('[CharacterSheet DEBUG] No messages in chat, skipping');
         return '';
     }
 
-    if (context.chat.length < extension_settings.character_sheet.promptInterval && !force) {
+    const minMessages = extension_settings.character_sheet.promptInterval;
+    console.debug(`[CharacterSheet DEBUG] Chat length: ${context.chat.length}, min messages required: ${minMessages}`);
+
+    if (context.chat.length < minMessages && !force) {
+        console.debug('[CharacterSheet DEBUG] Message count below threshold, skipping');
         return '';
     }
 
@@ -559,30 +573,36 @@ async function getUpdatePromptForNow(context, force) {
 
     for (let i = context.chat.length - 1; i >= 0; i--) {
         if (context.chat[i].extra && context.chat[i].extra.characterSheet) {
+            console.debug(`[CharacterSheet DEBUG] Found previous character sheet at index ${i}`);
             break;
         }
         messagesSinceUpdate++;
         wordsSinceUpdate += extractAllWords(context.chat[i].mes).length;
     }
 
+    console.debug(`[CharacterSheet DEBUG] Messages since last update: ${messagesSinceUpdate}, words: ${wordsSinceUpdate}`);
+
     const conditionSatisfied =
         messagesSinceUpdate >= extension_settings.character_sheet.promptInterval ||
         (extension_settings.character_sheet.promptForceWords > 0 && wordsSinceUpdate >= extension_settings.character_sheet.promptForceWords);
 
     if (!conditionSatisfied && !force) {
+        console.debug('[CharacterSheet DEBUG] Trigger conditions not met (message count and word count thresholds)');
         return '';
     }
 
-    console.log(`Updating character sheet. Messages since last update: ${messagesSinceUpdate}, words: ${wordsSinceUpdate}`);
+    console.log(`[CharacterSheet] Updating character sheet. Messages since last update: ${messagesSinceUpdate}, words: ${wordsSinceUpdate}`);
 
     const prompt = substituteParamsExtended(extension_settings.character_sheet.prompt, {
         words: extension_settings.character_sheet.promptWords,
     });
 
     if (!prompt) {
+        console.debug('[CharacterSheet DEBUG] Generated prompt is empty, skipping');
         return '';
     }
 
+    console.debug('[CharacterSheet DEBUG] Trigger conditions satisfied, proceeding with update');
     return prompt;
 }
 
@@ -595,7 +615,7 @@ async function getUpdatePromptForNow(context, force) {
 async function getRawCharacterSheetPrompt(context, systemPrompt) {
     /**
      * Build the raw prompt string.
-     * @param {boolean} includeSystem Include the system prompt
+     * @param {boolean} includeSystem Include the system prompt prompt
      * @param {string} processedPrompt The processed system prompt with placeholders replaced
      * @returns {string} The built string
      */
@@ -621,6 +641,8 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
     const latestSheet = getLatestCharacterSheetFromChat(chat);
     const latestSheetIndex = getIndexOfLatestCharacterSheet(chat);
 
+    console.debug(`[CharacterSheet DEBUG] latestSheetIndex=${latestSheetIndex}, chat.length=${chat.length}`);
+
     chat.pop();
     const chatBuffer = [];
     const PADDING = 64;
@@ -631,8 +653,10 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
     let processedPrompt = systemPrompt;
     if (latestSheet) {
         processedPrompt = processedPrompt.replace(/\{\{previous_sheet\}\}/g, latestSheet);
+        console.debug('[CharacterSheet DEBUG] Previous sheet found, length:', latestSheet.length);
     } else {
         processedPrompt = processedPrompt.replace(/\{\{previous_sheet\}\}/g, '(No previous character sheet)');
+        console.debug('[CharacterSheet DEBUG] No previous sheet found');
     }
 
     // Collect new dialogue content
@@ -654,6 +678,7 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
         if (tokens > PROMPT_SIZE) {
             chatBuffer.pop();
             newDialogueContent.pop();
+            console.debug(`[CharacterSheet DEBUG] Token limit exceeded (${tokens} > ${PROMPT_SIZE}), stopping at index ${index}`);
             break;
         }
 
@@ -661,9 +686,12 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
 
         if (extension_settings.character_sheet.maxMessagesPerRequest > 0 &&
             chatBuffer.length >= extension_settings.character_sheet.maxMessagesPerRequest) {
+            console.debug(`[CharacterSheet DEBUG] Max messages limit reached (${chatBuffer.length})`);
             break;
         }
     }
+
+    console.debug(`[CharacterSheet DEBUG] Collected ${chatBuffer.length} messages, ${newDialogueContent.flat().length} dialogue entries`);
 
     // Replace {{new_dialogue}} placeholder with actual dialogue content
     const newDialogueText = newDialogueContent.join('\n\n');
@@ -671,6 +699,8 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
 
     const lastUsedIndex = context.chat.indexOf(latestUsedMessage);
     const rawPrompt = buildString(false, processedPrompt);
+    const tokenCount = await countSourceTokens(rawPrompt);
+    console.log(`[CharacterSheet] Raw prompt built: ${rawPrompt.length} chars, ~${tokenCount} tokens, lastUsedIndex=${lastUsedIndex}`);
     return { rawPrompt, lastUsedIndex, processedSystemPrompt: processedPrompt };
 }
 
@@ -908,14 +938,17 @@ async function callExtrasSummarizeAPI(text) {
  */
 async function updateCharacterSheet(context) {
     if (!extension_settings.character_sheet.enabled) {
+        console.debug('[CharacterSheet DEBUG] Extension is disabled, skipping update');
         return;
     }
 
     if (streamingProcessor && !streamingProcessor.isFinished) {
+        console.debug('[CharacterSheet DEBUG] Streaming not finished, skipping');
         return;
     }
 
     if (inApiCall || extension_settings.character_sheet.frozen) {
+        console.debug(`[CharacterSheet DEBUG] inApiCall=${inApiCall}, frozen=${extension_settings.character_sheet.frozen}, skipping`);
         return;
     }
 
@@ -924,11 +957,15 @@ async function updateCharacterSheet(context) {
     // Check if there's anything new to process
     if (chat.length === 0 ||
         (lastMessageId === chat.length && getStringHash(chat[chat.length - 1].mes) === lastMessageHash)) {
+        console.debug('[CharacterSheet DEBUG] No new messages to process (hash unchanged or empty chat)');
         return;
     }
 
+    console.debug(`[CharacterSheet DEBUG] New messages detected. Chat length: ${chat.length}, lastMessageId: ${lastMessageId}`);
+
     // Handle message deletion
     if (chat.length < lastMessageId) {
+        console.debug(`[CharacterSheet DEBUG] Messages deleted (${lastMessageId} -> ${chat.length}), restoring sheet`);
         const latestSheet = getLatestCharacterSheetFromChat(chat);
         setCharacterSheetContext(latestSheet, false);
     }
@@ -936,43 +973,58 @@ async function updateCharacterSheet(context) {
     // Handle message edit/regenerate
     if (chat.length && chat[chat.length - 1].extra && chat[chat.length - 1].extra.characterSheet &&
         lastMessageId === chat.length && getStringHash(chat[chat.length - 1].mes) !== lastMessageHash) {
+        console.debug('[CharacterSheet DEBUG] Message edited, removing stale character sheet reference');
         delete chat[chat.length - 1].extra.characterSheet;
     }
 
     let characterSheetResult = null;
 
     try {
+        console.log(`[CharacterSheet] Starting update. Source: ${extension_settings.character_sheet.source}`);
+
         // Update character sheet based on source
         switch (extension_settings.character_sheet.source) {
             case summary_sources.extras:
+                console.debug('[CharacterSheet DEBUG] Using Extras API for update');
                 await updateCharacterSheetExtras(context);
                 break;
             case summary_sources.webllm:
+                console.debug('[CharacterSheet DEBUG] Using WebLLM for update');
                 characterSheetResult = await updateCharacterSheetWebLLM(context, false);
                 break;
             case summary_sources.main:
             default:
+                console.debug('[CharacterSheet DEBUG] Using Main API for update');
                 characterSheetResult = await updateCharacterSheetMain(context, false);
                 break;
         }
 
         // In lock mode, also trigger memory update after character sheet update
         // Only trigger memory update if character sheet was successfully updated
-        if (extension_settings.character_sheet.lockMode && characterSheetResult) {
-            try {
-                const memoryModule = await import('../memory/index.js');
-                if (typeof memoryModule.forceSummarizeChat === 'function') {
-                    await memoryModule.forceSummarizeChat(true);
+        if (extension_settings.character_sheet.lockMode) {
+            console.log(`[CharacterSheet] Lock Mode is ${extension_settings.character_sheet.lockMode ? 'ACTIVE' : 'inactive'}`);
+            if (characterSheetResult) {
+                console.log('[CharacterSheet] Lock Mode: Character sheet updated successfully, triggering memory update...');
+                try {
+                    const memoryModule = await import('../memory/index.js');
+                    if (typeof memoryModule.forceSummarizeChat === 'function') {
+                        console.debug('[CharacterSheet DEBUG] Calling memoryModule.forceSummarizeChat(true)');
+                        await memoryModule.forceSummarizeChat(true);
+                        console.log('[CharacterSheet] Lock Mode: Memory update completed');
+                    }
+                } catch (e) {
+                    console.warn('[CharacterSheet] Could not trigger memory update in lock mode:', e);
                 }
-            } catch (e) {
-                console.warn('Could not trigger memory update in lock mode:', e);
+            } else {
+                console.debug('[CharacterSheet DEBUG] Lock Mode: Character sheet update failed, skipping memory trigger');
             }
         }
     } catch (error) {
-        console.error('Character sheet update failed:', error);
+        console.error('[CharacterSheet] Update failed:', error);
     } finally {
         lastMessageId = context.chat?.length ?? null;
         lastMessageHash = getStringHash((context.chat.length && context.chat[context.chat.length - 1]['mes']) ?? '');
+        console.debug(`[CharacterSheet DEBUG] Update finished. lastMessageId: ${lastMessageId}`);
     }
 }
 
@@ -1039,13 +1091,17 @@ function updateLockMode(enabled, fromSyncButton = false) {
     const wasLocked = extension_settings.memory?.memoryFrozen === true;
     const isChanging = wasLocked !== enabled;
 
+    console.log(`[CharacterSheet] updateLockMode called: enabled=${enabled}, wasLocked=${wasLocked}, isChanging=${isChanging}`);
+
     if (enabled && extension_settings.memory) {
         // Freeze memory extension when lock mode is active
         extension_settings.memory.memoryFrozen = true;
+        console.log('[CharacterSheet] Lock Mode: memory.memoryFrozen set to true');
         // Update memory checkbox UI if it exists
         const memoryFrozenCheckbox = document.getElementById('memory_frozen');
         if (memoryFrozenCheckbox) {
             memoryFrozenCheckbox.checked = true;
+            console.debug('[CharacterSheet DEBUG] Updated memory frozen checkbox UI');
         }
         if (isChanging && !fromSyncButton) {
             toastr.info(translate('Memory extension has been frozen. Character Sheet extension will handle both updates'), translate('Lock Mode Active'), { timeOut: 3000 });
@@ -1053,10 +1109,12 @@ function updateLockMode(enabled, fromSyncButton = false) {
     } else if (!enabled && extension_settings.memory) {
         // Unfreeze memory extension when lock mode is disabled
         extension_settings.memory.memoryFrozen = false;
+        console.log('[CharacterSheet] Lock Mode: memory.memoryFrozen set to false');
         // Update memory checkbox UI if it exists
         const memoryFrozenCheckbox = document.getElementById('memory_frozen');
         if (memoryFrozenCheckbox) {
             memoryFrozenCheckbox.checked = false;
+            console.debug('[CharacterSheet DEBUG] Updated memory frozen checkbox UI');
         }
         if (isChanging && !fromSyncButton) {
             toastr.success(translate('Memory extension has been unfrozen. It can now update independently'), translate('Lock Mode Disabled'), { timeOut: 3000 });
@@ -1072,36 +1130,46 @@ function updateLockMode(enabled, fromSyncButton = false) {
 async function triggerBothUpdates(isLockModeUpdate = false) {
     // This function is only called for manual sync operations
     // Lock Mode uses a different flow: character_sheet triggers memory after its own update
+    console.log('[CharacterSheet] triggerBothUpdates called - Manual sync mode');
     const toast = toastr.info(translate('Updating character sheet and memory...'), translate('Please wait'), { timeOut: 0, extendedTimeOut: 0 });
 
     try {
         // Save current states
         const wasLockMode = extension_settings.character_sheet.lockMode;
         const wasMemoryFrozen = extension_settings.memory?.memoryFrozen ?? false;
+        console.debug(`[CharacterSheet DEBUG] Original state: lockMode=${wasLockMode}, memoryFrozen=${wasMemoryFrozen}`);
 
         // Temporarily disable lock mode and unfreeze memory
         extension_settings.character_sheet.lockMode = false;
+        console.debug('[CharacterSheet DEBUG] Temporarily disabled lockMode');
         if (extension_settings.memory) {
             extension_settings.memory.memoryFrozen = false;
+            console.debug('[CharacterSheet DEBUG] Temporarily set memory.memoryFrozen=false');
         }
 
         // Update character sheet first
+        console.log('[CharacterSheet] Manual sync: Updating character sheet...');
         const sheetResult = await forceUpdateCharacterSheet(true);
+        console.log(`[CharacterSheet] Manual sync: Character sheet update ${sheetResult ? 'succeeded' : 'failed'}`);
 
         // Then update memory (forceSummarizeChat bypasses frozen state)
+        console.log('[CharacterSheet] Manual sync: Triggering memory update...');
         try {
             const memoryModule = await import('../memory/index.js');
             if (typeof memoryModule.forceSummarizeChat === 'function') {
                 await memoryModule.forceSummarizeChat(true);
+                console.log('[CharacterSheet] Manual sync: Memory update completed');
             }
         } catch (e) {
-            console.warn('Could not trigger memory update:', e);
+            console.warn('[CharacterSheet] Could not trigger memory update:', e);
         }
 
         // Restore lock mode and memoryFrozen state
         extension_settings.character_sheet.lockMode = wasLockMode;
+        console.debug(`[CharacterSheet DEBUG] Restored lockMode=${wasLockMode}`);
         if (extension_settings.memory) {
             extension_settings.memory.memoryFrozen = wasMemoryFrozen;
+            console.debug(`[CharacterSheet DEBUG] Restored memory.memoryFrozen=${wasMemoryFrozen}`);
             // Update memory checkbox UI if it exists
             const memoryFrozenCheckbox = document.getElementById('memory_frozen');
             if (memoryFrozenCheckbox) {
@@ -1110,8 +1178,9 @@ async function triggerBothUpdates(isLockModeUpdate = false) {
         }
 
         toastr.success(translate('Both updates completed'), translate('Sync Result'));
+        console.log('[CharacterSheet] Manual sync: Both updates completed successfully');
     } catch (error) {
-        console.error('Sync failed:', error);
+        console.error('[CharacterSheet] Sync failed:', error);
         toastr.error(String(error), translate('Sync Failed'));
     } finally {
         toastr.clear(toast);
@@ -1292,6 +1361,8 @@ function setupListeners() {
 // ===== Initialization =====
 
 jQuery(async function () {
+    console.log('[CharacterSheet] Extension initializing...');
+
     async function addExtensionControls() {
         // Create container dynamically for third-party extension
         const container = $('<div>', { id: 'character_sheet_container', class: 'extension_container' });
@@ -1315,20 +1386,27 @@ jQuery(async function () {
             }
         }, 100);
     });
+    console.debug('[CharacterSheet DEBUG] Summarize container found');
 
     await addExtensionControls();
     loadSettings();
 
+    console.debug('[CharacterSheet DEBUG] Settings loaded');
+    console.log(`[CharacterSheet] Extension ready. Source: ${extension_settings.character_sheet.source}, Interval: ${extension_settings.character_sheet.promptInterval}, LockMode: ${extension_settings.character_sheet.lockMode}`);
+
     // Restore character sheet on chat change
     eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+    console.debug('[CharacterSheet DEBUG] Registered CHAT_CHANGED handler');
 
     // Update character sheet after messages
     eventSource.makeLast(event_types.CHARACTER_MESSAGE_RENDERED, onChatEvent);
+    console.debug('[CharacterSheet DEBUG] Registered CHARACTER_MESSAGE_RENDERED handler');
 
     // Handle message modifications
     for (const event of [event_types.MESSAGE_DELETED, event_types.MESSAGE_UPDATED, event_types.MESSAGE_SWIPED]) {
         eventSource.on(event, onChatEvent);
     }
+    console.debug('[CharacterSheet DEBUG] Registered message modification handlers');
 
     // Register slash command
     SlashCommandParser.addCommandObject(SlashCommand.fromProps({
@@ -1347,14 +1425,16 @@ jQuery(async function () {
             }),
         ],
     }));
+    console.debug('[CharacterSheet DEBUG] Registered /sheet slash command');
 
     // Register macros
     registerMacros();
+    console.debug('[CharacterSheet DEBUG] Registered macros');
 
     // Restore character sheet if exists
     onChatChanged();
 
-    console.log('Character Sheet extension loaded');
+    console.log('[CharacterSheet] Extension loaded successfully');
 });
 
 // Export for external use
