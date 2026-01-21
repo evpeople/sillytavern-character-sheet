@@ -643,6 +643,12 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
 
     console.debug(`[CharacterSheet DEBUG] latestSheetIndex=${latestSheetIndex}, chat.length=${chat.length}`);
 
+    // Sₙ₋₁: Previous character sheet (完整上下文)
+    console.debug(`[CharacterSheet DEBUG] === Sₙ₋₁ (Previous Sheet) ===`);
+    console.debug(`[CharacterSheet DEBUG] Length: ${latestSheet?.length ?? 0} chars`);
+    console.debug(`[CharacterSheet DEBUG] Content:\n${latestSheet ?? '(No previous sheet)'}`);
+    console.debug(`[CharacterSheet DEBUG] === END Sₙ₋₁ ===`);
+
     chat.pop();
     const chatBuffer = [];
     const PADDING = 64;
@@ -691,15 +697,28 @@ async function getRawCharacterSheetPrompt(context, systemPrompt) {
         }
     }
 
-    console.debug(`[CharacterSheet DEBUG] Collected ${chatBuffer.length} messages, ${newDialogueContent.flat().length} dialogue entries`);
+    // Hₙ: New dialogue since last update (完整上下文)
+    const newDialogueText = newDialogueContent.join('\n\n');
+    console.debug(`[CharacterSheet DEBUG] === Hₙ (New Dialogue) ===`);
+    console.debug(`[CharacterSheet DEBUG] Messages collected: ${chatBuffer.length}`);
+    console.debug(`[CharacterSheet DEBUG] Total length: ${newDialogueText.length} chars`);
+    console.debug(`[CharacterSheet DEBUG] Content:\n${newDialogueText || '(No new dialogue)'}`);
+    console.debug(`[CharacterSheet DEBUG] === END Hₙ ===`);
 
     // Replace {{new_dialogue}} placeholder with actual dialogue content
-    const newDialogueText = newDialogueContent.join('\n\n');
     processedPrompt = processedPrompt.replace(/\{\{new_dialogue\}\}/g, newDialogueText);
 
     const lastUsedIndex = context.chat.indexOf(latestUsedMessage);
     const rawPrompt = buildString(false, processedPrompt);
     const tokenCount = await countSourceTokens(rawPrompt);
+
+    // Sₙ Input: Complete prompt sent to LLM (完整上下文)
+    console.debug(`[CharacterSheet DEBUG] === Sₙ INPUT (Complete Prompt to LLM) ===`);
+    console.debug(`[CharacterSheet DEBUG] Total chars: ${rawPrompt.length}, ~${tokenCount} tokens`);
+    console.debug(`[CharacterSheet DEBUG] Last used message index: ${lastUsedIndex}`);
+    console.debug(`[CharacterSheet DEBUG] Processed system prompt (with placeholders):\n${processedPrompt}`);
+    console.debug(`[CharacterSheet DEBUG] === END Sₙ INPUT ===`);
+
     console.log(`[CharacterSheet] Raw prompt built: ${rawPrompt.length} chars, ~${tokenCount} tokens, lastUsedIndex=${lastUsedIndex}`);
     return { rawPrompt, lastUsedIndex, processedSystemPrompt: processedPrompt };
 }
