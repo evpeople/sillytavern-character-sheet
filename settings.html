@@ -1,0 +1,196 @@
+<div id="character_sheet_settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <div class="flex-container alignitemscenter margin0">
+                <b data-i18n="Character Sheet">Character Sheet</b>
+                <i id="characterSheetExtensionPopoutButton" class="fa-solid fa-window-restore menu_button margin0"></i>
+            </div>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div id="characterSheetExtensionDrawerContents">
+                <div class="flex-container justifyspacebetween alignitemscenter">
+                    <span data-i18n="Current Character Sheet">Current Character Sheet</span>
+                    <i class="editor_maximize fa-solid fa-maximize right_menu_button" data-for="character_sheet_contents" data-i18n="[title]Expand the editor"></i>
+                    <span class="flex1">&nbsp;</span>
+                    <div id="character_sheet_restore" class="menu_button margin0" data-i18n="[title]Restore previous character sheet state">
+                        <small data-i18n="Restore Previous">Restore Previous</small>
+                    </div>
+                </div>
+
+                <textarea id="character_sheet_contents" class="text_pole textarea_compact" rows="8" data-i18n="[placeholder]Character sheet will be generated here"></textarea>
+
+                <div class="character_sheet_controls">
+                    <label for="character_sheet_enabled" data-i18n="[title]Enable or disable the character sheet extension">
+                        <input id="character_sheet_enabled" type="checkbox" />
+                        <span data-i18n="Enable">Enable</span>
+                    </label>
+                    <div id="character_sheet_force_update" class="menu_button menu_button_icon" data-i18n="[title]Update character sheet now">
+                        <i class="fa-solid fa-sync"></i>
+                        <span data-i18n="Update">Update</span>
+                    </div>
+                    <label for="character_sheet_frozen" data-i18n="[title]Pause automatic updates">
+                        <input id="character_sheet_frozen" type="checkbox" />
+                        <span data-i18n="Pause">Pause</span>
+                    </label>
+                    <label id="character_sheet_lock_mode_label" for="character_sheet_lock_mode" data-i18n="[title]When enabled, this extension handles both character sheet and memory updates, freezing the memory extension">
+                        <input id="character_sheet_lock_mode" type="checkbox" />
+                        <span data-i18n="Lock Mode">Lock Mode</span>
+                    </label>
+                </div>
+
+                <div class="character_sheet_controls">
+                    <div id="character_sheet_sync_button" class="menu_button menu_button_icon" data-i18n="[title]Force update both character sheet and memory">
+                        <i class="fa-solid fa-link"></i>
+                        <span data-i18n="Sync Both">Sync Both</span>
+                    </div>
+                    <div id="characterSheetSettingsBlockToggle" class="menu_button menu_button_icon" data-i18n="[title]Edit generation prompt, insertion position, etc.">
+                        <i class="fa-solid fa-cog"></i>
+                        <span data-i18n="Settings">Settings</span>
+                    </div>
+                </div>
+
+                <div id="characterSheetSettingsBlock" style="display:none;">
+                    <label for="character_sheet_source" data-i18n="API Source">API Source</label>
+                    <select id="character_sheet_source" class="text_pole">
+                        <option value="main" data-i18n="Main API">Main API</option>
+                        <option value="extras" data-i18n="Extras API">Extras API</option>
+                        <option value="webllm" data-i18n="WebLLM">WebLLM</option>
+                    </select>
+
+                    <label class="checkbox_label" for="character_sheet_skipWIAN" data-i18n="[title]Skip World Info and Author's Note scanning when generating the character sheet.">
+                        <input id="character_sheet_skipWIAN" type="checkbox" />
+                        <span data-i18n="Skip WI/AN Scanning">Skip WI/AN Scanning</span>
+                    </label>
+
+                    <label data-i18n="Prompt Builder">Prompt Builder</label>
+                    <label class="checkbox_label" for="character_sheet_prompt_builder_raw_blocking" data-i18n="[title]Extension will build its own prompt using messages that were not summarized yet. Blocks the chat until the update is generated.">
+                        <input id="character_sheet_prompt_builder_raw_blocking" type="radio" name="character_sheet_prompt_builder" value="1" />
+                        <span data-i18n="Raw, blocking">Raw, blocking</span>
+                    </label>
+                    <label class="checkbox_label" for="character_sheet_prompt_builder_raw_non_blocking" data-i18n="[title]Extension will build its own prompt using messages that were not summarized yet. Does not block the chat while updating.">
+                        <input id="character_sheet_prompt_builder_raw_non_blocking" type="radio" name="character_sheet_prompt_builder" value="2" />
+                        <span data-i18n="Raw, non-blocking">Raw, non-blocking</span>
+                    </label>
+                    <label class="checkbox_label" id="character_sheet_prompt_builder_default" data-i18n="[title]Extension will use the regular main prompt builder.">
+                        <input id="character_sheet_prompt_builder_default" type="radio" name="character_sheet_prompt_builder" value="0" />
+                        <span data-i18n="Classic, blocking">Classic, blocking</span>
+                    </label>
+
+                    <label for="character_sheet_prompt" class="title_restorable">
+                        <span data-i18n="Character Sheet Prompt">Character Sheet Prompt</span>
+                        <div id="character_sheet_prompt_restore" data-i18n="[title]Restore default prompt" class="right_menu_button">
+                            <div class="fa-solid fa-clock-rotate-left"></div>
+                        </div>
+                    </label>
+                    <textarea id="character_sheet_prompt" class="text_pole textarea_compact" rows="6" data-i18n="[placeholder]This prompt will be sent to AI to request character sheet updates. {{words}} will resolve to the target length parameter."></textarea>
+
+                    <label for="character_sheet_prompt_words">
+                        <span data-i18n="Target length">Target length</span>
+                        <span>(</span>
+                        <span id="character_sheet_prompt_words_value"></span>
+                        <span data-i18n="words">words)</span>
+                    </label>
+                    <input id="character_sheet_prompt_words" type="range"
+                           value="{{defaultSettings.promptWords}}"
+                           min="{{defaultSettings.promptMinWords}}"
+                           max="{{defaultSettings.promptMaxWords}}"
+                           step="{{defaultSettings.promptWordsStep}}" />
+
+                    <label for="character_sheet_override_response_length" data-character-sheet-source="main,webllm">
+                        <span data-i18n="API response length">API response length</span>
+                        <span>(</span>
+                        <span id="character_sheet_override_response_length_value"></span>
+                        <span data-i18n="tokens">tokens)</span>
+                        <small class="character_sheet_disabled_hint" data-i18n="0 = default">0 = default</small>
+                    </label>
+                    <input id="character_sheet_override_response_length" type="range"
+                           value="{{defaultSettings.overrideResponseLength}}"
+                           min="0" max="4096" step="16" />
+
+                    <label for="character_sheet_max_messages_per_request">
+                        <span data-i18n="Max messages per request">Max messages per request</span>
+                        (<span id="character_sheet_max_messages_per_request_value"></span>)
+                        <small class="character_sheet_disabled_hint" data-i18n="0 = unlimited">0 = unlimited</small>
+                    </label>
+                    <input id="character_sheet_max_messages_per_request" type="range"
+                           value="{{defaultSettings.maxMessagesPerRequest}}"
+                           min="0" max="250" step="1" />
+
+                    <h4 class="textAlignCenter" data-i18n="Update Frequency">Update Frequency</h4>
+
+                    <label for="character_sheet_prompt_interval" class="title_restorable">
+                        <span>
+                            <span data-i18n="Update every">Update every</span>
+                            <span id="character_sheet_prompt_interval_value"></span>
+                            <span data-i18n="messages">messages</span>
+                            <small class="character_sheet_disabled_hint" data-i18n="0 = disable">0 = disable</small>
+                        </span>
+                        <div id="character_sheet_prompt_interval_auto" data-i18n="[title]Auto-calculate optimal interval" class="right_menu_button">
+                            <div class="fa-solid fa-magic"></div>
+                        </div>
+                    </label>
+                    <input id="character_sheet_prompt_interval" type="range"
+                           value="{{defaultSettings.promptInterval}}"
+                           min="0" max="250" step="1" />
+
+                    <label for="character_sheet_prompt_words_force" class="title_restorable">
+                        <span>
+                            <span data-i18n="Update every">Update every</span>
+                            <span id="character_sheet_prompt_words_force_value"></span>
+                            <span data-i18n="words">words</span>
+                            <small class="character_sheet_disabled_hint" data-i18n="0 = disable">0 = disable</small>
+                        </span>
+                        <div id="character_sheet_prompt_words_auto" data-i18n="[title]Auto-calculate optimal word count" class="right_menu_button">
+                            <div class="fa-solid fa-magic"></div>
+                        </div>
+                    </label>
+                    <input id="character_sheet_prompt_words_force" type="range"
+                           value="{{defaultSettings.promptForceWords}}"
+                           min="0" max="10000" step="100" />
+
+                    <small data-i18n="If both sliders are non-zero, either will trigger updates.">If both sliders are non-zero, either will trigger updates.</small>
+                    <hr />
+
+                    <div class="character_sheet_template">
+                        <label for="character_sheet_template" data-i18n="Injection Template">Injection Template</label>
+                        <textarea id="character_sheet_template" class="text_pole textarea_compact" rows="2" data-i18n="[placeholder]{{sheet}} will resolve to the character sheet content."></textarea>
+                    </div>
+
+                    <label for="character_sheet_position" data-i18n="Injection Position">Injection Position</label>
+                    <label class="checkbox_label" for="character_sheet_include_wi_scan" data-i18n="[title]Include the latest character sheet in the WI scan.">
+                        <input id="character_sheet_include_wi_scan" type="checkbox" />
+                        <span data-i18n="Include in World Info Scanning">Include in World Info Scanning</span>
+                    </label>
+
+                    <div class="radio_group">
+                        <label>
+                            <input type="radio" name="character_sheet_position" value="-1" />
+                            <span data-i18n="None (not injected)">None (not injected)</span>
+                            <i class="fa-solid fa-info-circle" data-i18n="[title]The character sheet will not be injected into the prompt. You can still access it via the {{char_sheet}} macro."></i>
+                        </label>
+                        <label>
+                            <input type="radio" name="character_sheet_position" value="2" />
+                            <span data-i18n="Before Main Prompt / Story String">Before Main Prompt / Story String</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="character_sheet_position" value="0" />
+                            <span data-i18n="After Main Prompt / Story String">After Main Prompt / Story String</span>
+                        </label>
+                        <label class="flex-container alignItemsCenter" data-i18n="[title]How many messages before the current end of the chat.">
+                            <input type="radio" name="character_sheet_position" value="1" />
+                            <span data-i18n="In-chat @ Depth">In-chat @ Depth</span>
+                            <input id="character_sheet_depth" class="text_pole widthUnset" type="number" min="0" max="9999" />
+                            <span data-i18n="as">as</span>
+                            <select id="character_sheet_role" class="text_pole widthNatural">
+                                <option value="0" data-i18n="System">System</option>
+                                <option value="1" data-i18n="User">User</option>
+                                <option value="2" data-i18n="Assistant">Assistant</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

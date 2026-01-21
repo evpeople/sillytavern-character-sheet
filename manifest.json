@@ -1,0 +1,16 @@
+{
+    "display_name": "Character Sheet",
+    "loading_order": 11,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "SillyTavern Community",
+    "version": "1.0.0",
+    "homePage": "https://github.com/SillyTavern/SillyTavern",
+    "minimum_client_version": "1.12.0",
+    "i18n": {
+        "en": "i18n/en.json",
+        "zh-cn": "i18n/zh-cn.json"
+    }
+}

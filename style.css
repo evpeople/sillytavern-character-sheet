@@ -1,0 +1,278 @@
+/* Character Sheet Extension Styles */
+
+/* Main container */
+#character_sheet_settings {
+    width: 100%;
+}
+
+/* Character sheet contents textarea */
+#character_sheet_contents {
+    font-family: var(--font-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 150px;
+    max-height: 400px;
+}
+
+#character_sheet_contents:focus {
+    outline: 2px solid var(--accent-500, #646cff);
+    outline-offset: 2px;
+}
+
+/* Controls bar */
+.character_sheet_controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.character_sheet_controls .menu_button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.character_sheet_controls .menu_button_icon {
+    padding: 6px 10px;
+}
+
+.character_sheet_controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.character_sheet_controls label:hover {
+    background-color: var(--bg-800, #2d2d2d);
+}
+
+.character_sheet_controls input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-500, #646cff);
+}
+
+/* Settings block */
+#characterSheetSettingsBlock {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bg-700, #333);
+}
+
+#characterSheetSettingsBlock label {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+#characterSheetSettingsBlock input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+    cursor: pointer;
+    accent-color: var(--accent-500, #646cff);
+}
+
+#characterSheetSettingsBlock textarea {
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+}
+
+#characterSheetSettingsBlock small {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-400, #888);
+}
+
+#characterSheetSettingsBlock hr {
+    border: none;
+    border-top: 1px solid var(--bg-700, #333);
+    margin: 16px 0;
+}
+
+#characterSheetSettingsBlockToggle {
+    margin-left: auto;
+}
+
+/* Disabled hint */
+.character_sheet_disabled_hint {
+    color: var(--text-400, #888);
+    font-style: italic;
+}
+
+/* Value displays */
+#character_sheet_prompt_words_value,
+#character_sheet_prompt_interval_value,
+#character_sheet_prompt_words_force_value,
+#character_sheet_override_response_length_value,
+#character_sheet_max_messages_per_request_value {
+    font-weight: 600;
+    color: var(--accent-400, #8888ff);
+}
+
+/* Title restore button */
+.title_restorable {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title_restorable .right_menu_button {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.title_restorable .right_menu_button:hover {
+    opacity: 1;
+}
+
+/* Radio group */
+.radio_group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.radio_group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin: 0 !important;
+}
+
+.radio_group label:hover {
+    background-color: var(--bg-800, #2d2d2d);
+}
+
+.radio_group input[type="radio"] {
+    cursor: pointer;
+    accent-color: var(--accent-500, #646cff);
+}
+
+/* Popout window */
+#characterSheetExtensionPopout {
+    position: absolute;
+    z-index: 1000;
+    background: var(--bg-900, #1a1a1a);
+    border: 1px solid var(--bg-700, #333);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
+    width: 90vw;
+}
+
+#characterSheetExtensionPopoutheader {
+    cursor: move;
+    padding: 8px;
+    color: var(--text-200, #ccc);
+}
+
+#characterSheetExtensionPopoutClose {
+    cursor: pointer;
+    padding: 8px;
+    color: var(--text-200, #ccc);
+    transition: color 0.2s;
+}
+
+#characterSheetExtensionPopoutClose:hover {
+    color: var(--text-000, #fff);
+}
+
+#characterSheetExtensionPopout .inline-drawer-content {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Drawer contents */
+#characterSheetExtensionDrawerContents {
+    padding: 4px;
+}
+
+#characterSheetExtensionDrawerContents.scrollableInnerFull {
+    max-height: none;
+}
+
+/* Icon styles */
+.character_sheet_controls .fa-sync,
+.character_sheet_controls .fa-link,
+.character_sheet_controls .fa-cog {
+    font-size: 14px;
+}
+
+/* Editor maximize button */
+.editor_maximize {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    margin-left: 8px;
+}
+
+.editor_maximize:hover {
+    opacity: 1;
+}
+
+/* Checkbox label styles */
+.checkbox_label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    margin-bottom: 4px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #characterSheetExtensionPopout {
+        width: 95vw;
+        max-height: 80vh;
+    }
+
+    .character_sheet_controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .character_sheet_controls .menu_button,
+    .character_sheet_controls label {
+        justify-content: center;
+    }
+}
+
+/* Dark mode support (SillyTavern's default) */
+@media (prefers-color-scheme: dark) {
+    #character_sheet_contents,
+    #character_sheet_prompt,
+    #character_sheet_template {
+        background-color: var(--bg-800, #2d2d2d);
+        color: var(--text-100, #e0e0e0);
+        border: 1px solid var(--bg-700, #404040);
+    }
+}
+
+/* Print styles */
+@media print {
+    #character_sheet_settings,
+    #characterSheetExtensionPopout {
+        display: none;
+    }
+}
