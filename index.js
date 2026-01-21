@@ -148,6 +148,11 @@ const saveChatDebounced = debounce(() => getContext().saveChat(), debounce_timeo
  * Load settings from storage.
  */
 function loadSettings() {
+    // Initialize character_sheet object if it doesn't exist
+    if (!extension_settings.character_sheet) {
+        extension_settings.character_sheet = {};
+    }
+
     if (Object.keys(extension_settings.character_sheet).length === 0) {
         Object.assign(extension_settings.character_sheet, defaultSettings);
     }
